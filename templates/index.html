@@ -91,6 +91,10 @@
             <div class="metric-value">{{ result.monthly_payment_rub }} ₽</div>
           </div>
           <div class="metric">
+            <div class="metric-label">Полная сумма</div>
+            <div class="metric-value">{{ result.total_paid_rub }} ₽</div>
+          </div>
+          <div class="metric">
             <div class="metric-label">Переплата</div>
             <div class="metric-value">{{ result.overpayment_rub }} ₽</div>
           </div>
@@ -114,6 +118,11 @@
       {% if schedule %}
       <section class="card schedule">
         <h2>График платежей</h2>
+        {% if chart_base64 %}
+        <div class="chart-container">
+          <img src="data:image/png;base64,{{ chart_base64 }}" alt="График платежей" class="chart-image" />
+        </div>
+        {% endif %}
         <div class="schedule-table-wrap">
           <table class="schedule-table">
             <thead>
