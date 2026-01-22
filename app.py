@@ -1,11 +1,16 @@
 from __future__ import annotations
 
+import base64
 from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP, getcontext
 from io import BytesIO
 from typing import Any
 
 from flask import Flask, render_template, request, send_file
+import matplotlib
+matplotlib.use("Agg")  # Использовать без GUI
+from matplotlib import pyplot as plt
+from matplotlib.figure import Figure
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Font
 
@@ -144,6 +149,73 @@ def _fmt_rub(amount: Decimal) -> str:
     return f"{' '.join(reversed(chunks))}.{frac}"
 
 
+def _build_schedule_chart(schedule: list[dict[str, Decimal]]) -> str:
+    """Создает график платежей и возвращает base64 строку изображения."""
+    months = [int(row["month"]) for row in schedule]
+    payments = [float(row["payment"]) for row in schedule]
+    interests = [float(row["interest"]) for row in schedule]
+    principals = [float(row["principal"]) for row in schedule]
+    balances = [float(row["balance"]) for row in schedule]
+
+    # Настройка темной темы для графика
+    plt.style.use("dark_background")
+    fig = Figure(figsize=(12, 8), facecolor="#0b1220")
+    ax1 = fig.add_subplot(2, 1, 1)
+    ax2 = fig.add_subplot(2, 1, 2)
+
+    # Первый график: платежи, проценты и тело кредита
+    ax1.plot(months, payments, label="Платёж", color="#6ea8ff", linewidth=2)
+    ax1.fill_between(months, interests, 0, alpha=0.4, color="#ff6b6b", label="Проценты")
+    ax1.fill_between(
+        months,
+        [i + p for i, p in zip(interests, principals)],
+        interests,
+        alpha=0.4,
+        color="#6ef0c2",
+        label="Тело кредита",
+    )
+    ax1.set_xlabel("Месяц", color="#93a4c7", fontsize=11)
+    ax1.set_ylabel("Сумма, ₽", color="#93a4c7", fontsize=11)
+    ax1.set_title("Структура платежей", color="#e9eefc", fontsize=13, fontweight="bold", pad=15)
+    ax1.legend(loc="upper right", facecolor="#0f1a2e", edgecolor=(1.0, 1.0, 1.0, 0.1), labelcolor="#e9eefc")
+    ax1.grid(True, alpha=0.2, color="#93a4c7")
+    ax1.set_facecolor("#0f1a2e")
+    border_color = (1.0, 1.0, 1.0, 0.1)
+    ax1.spines["bottom"].set_color(border_color)
+    ax1.spines["top"].set_color(border_color)
+    ax1.spines["right"].set_color(border_color)
+    ax1.spines["left"].set_color(border_color)
+    ax1.tick_params(colors="#93a4c7")
+
+    # Второй график: остаток долга
+    ax2.plot(months, balances, label="Остаток долга", color="#6ea8ff", linewidth=2)
+    ax2.fill_between(months, balances, 0, alpha=0.3, color="#6ea8ff")
+    ax2.set_xlabel("Месяц", color="#93a4c7", fontsize=11)
+    ax2.set_ylabel("Остаток, ₽", color="#93a4c7", fontsize=11)
+    ax2.set_title("Динамика остатка долга", color="#e9eefc", fontsize=13, fontweight="bold", pad=15)
+    ax2.legend(loc="upper right", facecolor="#0f1a2e", edgecolor=(1.0, 1.0, 1.0, 0.1), labelcolor="#e9eefc")
+    ax2.grid(True, alpha=0.2, color="#93a4c7")
+    ax2.set_facecolor("#0f1a2e")
+    border_color = (1.0, 1.0, 1.0, 0.1)
+    ax2.spines["bottom"].set_color(border_color)
+    ax2.spines["top"].set_color(border_color)
+    ax2.spines["right"].set_color(border_color)
+    ax2.spines["left"].set_color(border_color)
+    ax2.tick_params(colors="#93a4c7")
+
+    fig.tight_layout(pad=2.0)
+
+    # Сохранение в base64
+    buf = BytesIO()
+    fig.savefig(buf, format="png", facecolor="#0b1220", edgecolor="none", dpi=100, bbox_inches="tight")
+    buf.seek(0)
+    img_base64 = base64.b64encode(buf.read()).decode("utf-8")
+    buf.close()
+    plt.close(fig)
+
+    return img_base64
+
+
 def _build_schedule_xlsx(
     *,
     title: str,
@@ -271,12 +343,15 @@ def calculate() -> str:
             for row in schedule
         ]
 
+        chart_base64 = _build_schedule_chart(schedule)
+
         return render_template(
             "index.html",
             form=form,
             is_installment=is_installment,
             result=view_result,
             schedule=schedule_view,
+            chart_base64=chart_base64,
             error=None,
         )
     except ValueError as exc:
@@ -286,6 +361,7 @@ def calculate() -> str:
             is_installment=is_installment,
             result=None,
             schedule=None,
+            chart_base64=None,
             error=str(exc),
         )
 

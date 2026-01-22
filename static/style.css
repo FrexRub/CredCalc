@@ -157,15 +157,27 @@ input:focus{
 
 .schedule{
   margin-top:14px;
-  max-height:420px;
   display:flex;
   flex-direction:column;
   gap:10px;
+}
+.chart-container{
+  border-radius:12px;
+  border:1px solid rgba(255,255,255,.10);
+  overflow:hidden;
+  background:rgba(8,14,26,.55);
+  margin-bottom:10px;
+}
+.chart-image{
+  width:100%;
+  height:auto;
+  display:block;
 }
 .schedule-table-wrap{
   border-radius:12px;
   border:1px solid rgba(255,255,255,.10);
   overflow:auto;
+  max-height:420px;
 }
 .schedule-table{
   width:100%;
