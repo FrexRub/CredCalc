@@ -20,6 +20,7 @@ class MortgageResult:
     monthly_payment_rub: Decimal
     overpayment_rub: Decimal
     overpayment_percent: Decimal
+    total_paid_rub: Decimal
 
 
 def _to_decimal(value: str) -> Decimal:
@@ -126,6 +127,7 @@ def calculate_mortgage(
             monthly_payment_rub=monthly,
             overpayment_rub=overpayment_rub,
             overpayment_percent=overpayment_percent,
+            total_paid_rub=total_paid,
         ),
         schedule,
     )
@@ -168,6 +170,7 @@ def _build_schedule_xlsx(
         ("Срок, лет", years),
         ("Ставка, % годовых", annual_rate_percent),
         ("Ежемесячный платеж, ₽", result.monthly_payment_rub),
+        ("Полная сумма, ₽", result.total_paid_rub),
         ("Переплата, ₽", result.overpayment_rub),
         ("Переплата, %", result.overpayment_percent),
     ]
@@ -254,6 +257,7 @@ def calculate() -> str:
             "monthly_payment_rub": _fmt_rub(result.monthly_payment_rub),
             "overpayment_rub": _fmt_rub(result.overpayment_rub),
             "overpayment_percent": f"{result.overpayment_percent:.2f}",
+            "total_paid_rub": _fmt_rub(result.total_paid_rub),
         }
 
         schedule_view = [
