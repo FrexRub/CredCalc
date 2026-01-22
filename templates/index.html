@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Ипотечный калькулятор</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+  </head>
+  <body>
+    <main class="container">
+      <header class="header">
+        <div>
+          <h1>Ипотечный калькулятор</h1>
+          <p class="sub">Аннуитетный платеж, переплата в ₽ и %</p>
+        </div>
+      </header>
+
+      <section class="card">
+        <form class="grid" action="{{ url_for('calculate') }}" method="post" novalidate>
+          <label class="field">
+            <span class="label">Стоимость жилья, ₽</span>
+            <input
+              name="home_price"
+              inputmode="decimal"
+              placeholder="Например: 8 500 000"
+              value="{{ form.home_price }}"
+              required
+            />
+          </label>
+
+          <label class="field">
+            <span class="label">Первоначальный взнос, ₽</span>
+            <input
+              name="down_payment"
+              inputmode="decimal"
+              placeholder="Например: 1 500 000"
+              value="{{ form.down_payment }}"
+              required
+            />
+          </label>
+
+          <label class="field">
+            <span class="label">Срок кредита, лет</span>
+            <input
+              name="years"
+              inputmode="numeric"
+              placeholder="Например: 20"
+              value="{{ form.years }}"
+              required
+            />
+          </label>
+
+          {% if not is_installment %}
+          <label class="field">
+            <span class="label">Ставка, % годовых</span>
+            <input
+              name="annual_rate_percent"
+              inputmode="decimal"
+              placeholder="Например: 15.2"
+              value="{{ form.annual_rate_percent }}"
+              required
+            />
+          </label>
+          {% endif %}
+
+          <div class="actions">
+            <button class="btn" type="submit" name="mode" value="credit">
+              Рассчитать
+            </button>
+            <button class="btn secondary" type="submit" name="mode" value="installment">
+              Рассрочка
+            </button>
+            <a class="btn secondary" href="{{ url_for('index') }}">Сбросить</a>
+          </div>
+        </form>
+      </section>
+
+      {% if error %}
+      <section class="card error" role="alert">
+        <div class="error-title">Ошибка ввода</div>
+        <div class="error-text">{{ error }}</div>
+      </section>
+      {% endif %}
+
+      {% if result %}
+      <section class="card result">
+        <h2>Результат</h2>
+        <div class="result-grid">
+          <div class="metric">
+            <div class="metric-label">Ежемесячный платеж</div>
+            <div class="metric-value">{{ result.monthly_payment_rub }} ₽</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Переплата</div>
+            <div class="metric-value">{{ result.overpayment_rub }} ₽</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Переплата</div>
+            <div class="metric-value">{{ result.overpayment_percent }} %</div>
+          </div>
+        </div>
+
+        <form class="export" action="{{ url_for('export_excel') }}" method="post">
+          <input type="hidden" name="home_price" value="{{ form.home_price }}" />
+          <input type="hidden" name="down_payment" value="{{ form.down_payment }}" />
+          <input type="hidden" name="years" value="{{ form.years }}" />
+          <input type="hidden" name="annual_rate_percent" value="{{ form.annual_rate_percent }}" />
+          <input type="hidden" name="mode" value="{% if is_installment %}installment{% else %}credit{% endif %}" />
+          <button class="btn secondary" type="submit">Скачать Excel</button>
+        </form>
+      </section>
+      {% endif %}
+
+      {% if schedule %}
+      <section class="card schedule">
+        <h2>График платежей</h2>
+        <div class="schedule-table-wrap">
+          <table class="schedule-table">
+            <thead>
+              <tr>
+                <th>Месяц</th>
+                <th>Платёж, ₽</th>
+                <th>Проценты, ₽</th>
+                <th>Тело, ₽</th>
+                <th>Остаток, ₽</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in schedule %}
+              <tr>
+                <td>{{ row.month }}</td>
+                <td>{{ row.payment }}</td>
+                <td>{{ row.interest }}</td>
+                <td>{{ row.principal }}</td>
+                <td>{{ row.balance }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+      {% endif %}
+
+      <footer class="footer">
+        <span>Формулы: аннуитет. Округление: до копеек.</span>
+      </footer>
+    </main>
+
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+  </body>
+</html>
+
